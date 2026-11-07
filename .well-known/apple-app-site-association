@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "P874MJXWZV.com.basketballers.dvlp",
+        "appIDs": ["P874MJXWZV.com.basketballers.dvlp"],
+        "paths": ["/open*"],
+        "components": [{ "/": "/open*", "comment": "OPEN IN THE APP from the plan email (D33)" }]
+      }
+    ]
+  }
+}
