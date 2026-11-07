@@ -1,0 +1,540 @@
+<!doctype html>
+<!-- ===== DVLP · go.dvlp.app/open (D33, D34a) · the OPEN IN THE APP link's page when the app is not installed =====
+     Built by scripts/build-snippets.mjs into web/open.html, which the Pages repo serves as open/index.html. A whole page, not a
+     Code Block. It shows nothing of the player and calls no server (D33); the only request is the fonts. Port of mock A12. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DVLP · Open in the app</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+/* The arcade look shared by the quiz, the plan page and go.dvlp.app/open: the full-screen root, resets, type, components and the card.
+   Every rule sits under .dvq; keyframes start with dvq-. Included by scripts/build-snippets.mjs. */
+/* the root fills the screen whatever padding Squarespace's section adds */
+.dvq{
+  position:fixed;inset:0;z-index:1000;overflow:hidden;isolation:isolate;
+  color-scheme:dark;background:#000;color:#fff;font-family:var(--ui);font-size:16px;line-height:normal;font-weight:400;letter-spacing:normal;text-align:left;text-transform:none;-webkit-text-size-adjust:100%;
+  --panel:#17171A; --panel2:#1D1D22; --line:#2A2A30; --shd:#34343C;
+  --w:#FFFFFF; --dim:#A1A1A6; --lock:#6E6E73;
+  --g:#39FF14; --b:#4DA2F4; --o:#FF7A45; --y:#FFD23F; --blue:#00A6FE;
+  --bh:#4DA2F4; --fw:#39FF14; --fn:#FFFFFF; --sh:#FF7A45;
+  --ui:'Inter',system-ui,sans-serif; --px:'Press Start 2P','Courier New',monospace;
+}
+.dvq,.dvq *{box-sizing:border-box}
+/* the quiz's own elements carry every value they rely on, so the site's h1/h2/p/button/input styles cannot leak in */
+.dvq *{line-height:inherit}
+.dvq button{display:inline-block;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font:inherit;color:inherit;letter-spacing:normal;text-transform:none;text-align:center;text-decoration:none;width:auto;height:auto;min-width:0;cursor:pointer;-webkit-appearance:none;appearance:none}
+.dvq input{margin:0;box-shadow:none;letter-spacing:normal;line-height:normal;max-width:none;-webkit-appearance:none;appearance:none}
+.dvq h1,.dvq h2{margin:0;font:700 16px/normal var(--ui);color:inherit;letter-spacing:normal;text-transform:none;text-align:inherit}
+.dvq p{margin:0;font:400 16px/normal var(--ui);color:inherit;letter-spacing:normal;text-transform:none}
+.dvq img{max-width:none}
+.dvq button:focus-visible,.dvq input:focus-visible{outline:4px solid var(--y);outline-offset:2px}
+
+/* ---------- pixel type: Press Start 2P only at multiples of its native 8px ---------- */
+.dvq .px{font-family:var(--px);letter-spacing:0;-webkit-font-smoothing:none;font-smooth:never;text-transform:uppercase}
+.dvq .p8{font-family:var(--px);font-size:8px;line-height:16px}
+.dvq .p16{font-family:var(--px);font-size:16px;line-height:24px}
+.dvq .p24{font-family:var(--px);font-size:24px;line-height:32px}
+.dvq .p32{font-family:var(--px);font-size:32px;line-height:40px}
+.dvq .out{text-shadow:4px 4px 0 #000,-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000}
+.dvq .dim{color:var(--dim)} .dvq .gold{color:var(--g)}
+
+/* ---------- screen ---------- */
+.dvq .scr{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding-bottom:8px}
+.dvq .scr::-webkit-scrollbar{display:none}
+.dvq .pad{padding:0 16px}
+.dvq canvas.spr{image-rendering:pixelated;display:block}
+
+/* dither backdrops — 16-bit used dithering, not smooth gradients */
+.dvq .dith{background-color:#000;background-image:conic-gradient(#0D0D10 25%,transparent 0 50%,#0D0D10 0 75%,transparent 0);background-size:4px 4px}
+.dvq .floor{background-color:#26262B;background-image:conic-gradient(#1D1D22 25%,transparent 0 50%,#1D1D22 0 75%,transparent 0);background-size:8px 8px;border-top:4px solid var(--w)}
+
+/* ---------- components ---------- */
+.dvq .abtn{display:block;width:100%;min-height:56px;padding:12px 8px;background:var(--b);color:#000;border:4px solid var(--w);box-shadow:4px 4px 0 var(--shd);font-family:var(--px);font-size:16px;line-height:24px;text-transform:uppercase}
+.dvq .abtn.go{background:var(--g)}
+.dvq a.abtn{text-decoration:none;text-align:center}
+.dvq .abtn:active{transform:translate(4px,4px);box-shadow:0 0 0 var(--shd)}
+.dvq .lnk:active,.dvq .bk:active,.dvq .chip:active,.dvq .tile:active{filter:brightness(.8)}
+.dvq .field.bad{border-color:var(--o)}
+.dvq .err{margin:8px 0 0;color:var(--o);font-size:14px;line-height:20px;font-weight:700}
+.dvq .abtn:disabled{background:var(--panel2);color:var(--lock);border-color:var(--line);cursor:not-allowed}
+.dvq .lnk{display:block;margin:8px auto 0;min-height:44px;padding:0 12px;color:var(--dim);font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:4px}
+.dvq .panel{background:var(--panel);border:4px solid var(--w);box-shadow:4px 4px 0 var(--shd);padding:12px}
+.dvq .tag{display:inline-block;font-family:var(--px);font-size:8px;line-height:16px;padding:4px 8px;background:var(--g);color:#000;border:4px solid #000}
+.dvq .bk{width:44px;height:44px;flex:none;display:grid;place-items:center;background:var(--panel);border:4px solid var(--w);box-shadow:4px 4px 0 var(--shd)}
+.dvq .bk svg{width:16px;height:16px}
+
+/* coach speech */
+.dvq .bub{position:relative;flex:1;background:#fff;color:#000;padding:12px;font-weight:700;font-size:15px;line-height:20px;border:4px solid #000;box-shadow:4px 4px 0 var(--shd);margin-bottom:32px;min-height:52px}
+.dvq .bub:before{content:"";position:absolute;left:-12px;bottom:12px;border:8px solid transparent;border-right:8px solid #000;border-left:0}
+.dvq .hop{animation:dvq-hop .48s steps(4)}
+@keyframes dvq-hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+
+/* heat meter */
+.dvq .heat{flex:1;display:flex;align-items:center;gap:8px}
+.dvq .hc{flex:1;display:flex;gap:4px}
+.dvq .hc i{flex:1;height:16px;background:var(--panel2);border:4px solid var(--lock)}
+.dvq .hc i.on{background:var(--o);border-color:var(--w)}
+.dvq .heat.fire .hc i{background:var(--y);border-color:var(--o);animation:dvq-flick .4s steps(2) infinite}
+@keyframes dvq-flick{50%{background:var(--o);border-color:var(--y)}}
+.dvq .xpc{font-family:var(--px);font-size:8px;line-height:16px;color:var(--g);min-width:56px;text-align:right}
+
+/* option rows */
+.dvq .opt{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;text-align:left;padding:8px 12px;margin-bottom:12px;background:var(--panel);border:4px solid var(--w);box-shadow:4px 4px 0 var(--shd);font-weight:800;font-size:17px}
+.dvq .opt .n{width:32px;height:32px;flex:none;display:grid;place-items:center;background:#000;border:4px solid var(--w);font-family:var(--px);font-size:8px}
+.dvq .opt.sel{background:var(--g);color:#000}
+.dvq .opt.sel .n{background:#000;color:var(--g)}
+.dvq .opt:active{transform:translate(4px,4px);box-shadow:none}
+
+/* rate board */
+.dvq .board{margin:0 16px;padding:12px}
+.dvq .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:4px}
+.dvq .cols span{text-align:center;color:var(--dim)}
+.dvq .srow{padding:6px 0}
+.dvq .srow+.srow{border-top:4px solid var(--line)}
+.dvq .shd{display:flex;justify-content:space-between;margin-bottom:6px}
+.dvq .cells{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.dvq .cells button{height:44px;background:var(--panel2);border:4px solid var(--lock)}
+.dvq .cells button.f{background:var(--c);border-color:var(--w)}
+.dvq .cells button.f.tip{animation:dvq-stamp .3s steps(3)}
+@keyframes dvq-stamp{0%{transform:scaleY(.4)}100%{transform:none}}
+
+/* tape chips — rows of 4+ scroll horizontally */
+.dvq .grp{margin:16px 0 0}
+.dvq .grp .p8{padding:0 16px;margin-bottom:8px;display:block}
+.dvq .chips{display:flex;gap:8px;overflow-x:auto;padding:0 16px 8px;scrollbar-width:none;scroll-padding-inline:16px}
+.dvq .chips::-webkit-scrollbar{display:none}
+.dvq .chip{flex:none;min-height:48px;padding:0 16px;background:var(--panel);border:4px solid var(--w);box-shadow:4px 4px 0 var(--shd);font-weight:800;font-size:15px;white-space:nowrap}
+.dvq .chip.on{background:var(--g);color:#000}
+
+/* player select */
+.dvq .stage{position:relative;height:248px;margin:8px 16px 0;border:4px solid var(--w);box-shadow:4px 4px 0 var(--shd);overflow:hidden}
+.dvq .spot{position:absolute;left:50%;top:0;width:200px;margin-left:-100px;height:100%;background:rgba(77,162,244,.22);clip-path:polygon(40% 0,60% 0,100% 100%,0 100%)}
+.dvq .stage .floor{position:absolute;left:0;right:0;bottom:0;height:56px}
+.dvq .stage canvas{position:absolute;left:50%;bottom:20px;transform:translateX(-50%)}
+.dvq .plate{position:absolute;left:8px;top:8px;background:#000;border:4px solid var(--w);padding:4px 8px}
+.dvq .p1{position:absolute;right:8px;top:8px}
+.dvq .grid6{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 16px 0}
+.dvq .tile{position:relative;height:88px;display:grid;place-items:center;background:var(--panel);border:4px solid var(--lock)}
+.dvq .tile.on{border-color:var(--g);background:#000}
+.dvq .tile.on:after{content:"1P";position:absolute;left:-4px;top:-4px;background:var(--g);color:#000;font-family:var(--px);font-size:8px;line-height:16px;padding:0 4px;animation:dvq-blink 1s steps(2) infinite}
+.dvq .field{width:100%;height:56px;border:4px solid var(--w);background:var(--panel);color:#fff;padding:0 16px;font:inherit;font-size:18px;font-weight:800;text-transform:uppercase;border-radius:0}
+.dvq .field::placeholder{color:var(--dim);text-transform:none;font-weight:600}
+.dvq .blink{animation:dvq-blink 1s steps(2) infinite}
+@keyframes dvq-blink{50%{opacity:0}}
+
+/* title-card screens */
+.dvq .center{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 16px;text-align:center}
+
+/* card pack (the scan before the flip) */
+.dvq .pc{position:relative;width:256px;height:360px;margin:0 auto;perspective:800px}
+.dvq .pc>div{position:absolute;inset:0;border:4px solid var(--w);box-shadow:8px 8px 0 var(--shd);backface-visibility:hidden;transition:transform .48s steps(6)}
+.dvq .pc .back{display:grid;place-items:center;background-color:#000;background-image:conic-gradient(#17171A 25%,transparent 0 50%,#17171A 0 75%,transparent 0);background-size:16px 16px}
+.dvq .pc .back .scan{position:absolute;left:0;right:0;height:4px;background:var(--g);animation:dvq-scan 1.2s steps(12) infinite}
+@keyframes dvq-scan{from{top:0}to{top:100%}}
+
+/* plan reveal */
+.dvq .hero{position:relative;height:152px;margin:16px 16px 0;border:4px solid var(--w);box-shadow:4px 4px 0 var(--shd);overflow:hidden;display:flex;align-items:flex-end;justify-content:space-between;padding:12px;background-color:#0A1A2E;background-image:conic-gradient(rgba(77,162,244,.35) 25%,transparent 0 50%,rgba(77,162,244,.35) 0 75%,transparent 0);background-size:4px 4px}
+.dvq .days{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:16px 16px 0}
+.dvq .dsq{height:56px;display:grid;place-items:center;background:var(--panel2);border:4px solid var(--lock);color:var(--dim)}
+.dvq .dsq.cur{background:var(--b);color:#000;border-color:var(--w);animation:dvq-pulse 1s steps(2) infinite}
+@keyframes dvq-pulse{50%{background:var(--g)}}
+.dvq .dl{display:flex;justify-content:space-between;margin:4px 16px 0}
+.dvq .dl span{width:20%;text-align:center}
+.dvq .drl{display:flex;gap:12px;align-items:center;min-height:44px}
+.dvq .drl+.drl{border-top:4px solid var(--line)}
+.dvq .chk{width:24px;height:24px;flex:none;border:4px solid var(--w);background:#000}
+.dvq .drl b{font-size:15px;line-height:20px;display:block}
+.dvq .drl .p8{display:block}
+
+/* save slot */
+.dvq .slot{display:flex;gap:12px;align-items:center;margin:16px 16px 0;padding:12px}
+
+/* overlays: announcer callout + title card */
+.dvq .callout{position:absolute;left:-8px;right:-8px;top:34%;z-index:50;pointer-events:none;transform:rotate(-6deg);background:var(--c,var(--g));border-top:8px solid #000;border-bottom:8px solid #000;padding:16px 0;text-align:center;color:#000;animation:dvq-co 1.4s steps(1) forwards}
+.dvq .callout span{display:inline-block;animation:dvq-coin 1.4s steps(14) forwards}
+@keyframes dvq-co{0%{opacity:1}92%{opacity:1}100%{opacity:0}}
+@keyframes dvq-coin{0%{transform:translateX(-420px)}20%{transform:translateX(0)}78%{transform:translateX(0)}100%{transform:translateX(420px)}}
+.dvq .tcard{position:absolute;inset:0;z-index:55;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px;pointer-events:none;animation:dvq-tcx 1.2s steps(1) forwards}
+.dvq .tcard .p32,.dvq .tcard .p24{animation:dvq-slam .4s steps(4)}
+@keyframes dvq-slam{0%{transform:scale(3);opacity:0}100%{transform:none;opacity:1}}
+@keyframes dvq-tcx{0%,90%{opacity:1}100%{opacity:0}}
+.dvq .flash{position:absolute;inset:0;z-index:58;background:#fff;pointer-events:none;animation:dvq-fl .32s steps(4) forwards}
+@keyframes dvq-fl{from{opacity:.6}to{opacity:0}}
+.dvq.shake{animation:dvq-shk .32s steps(4)}
+@keyframes dvq-shk{25%{transform:translate(-4px,4px)}50%{transform:translate(4px,-4px)}75%{transform:translate(-4px,-4px)}}
+.dvq .pop{position:absolute;left:0;right:0;top:28%;z-index:45;text-align:center;color:var(--g);pointer-events:none;animation:dvq-rise .9s steps(9) forwards}
+@keyframes dvq-rise{0%{transform:translateY(16px);opacity:0}20%{opacity:1;transform:none}100%{transform:translateY(-64px);opacity:0}}
+
+@media (prefers-reduced-motion:reduce){.dvq,.dvq *{animation:none!important;transition:none!important}.dvq .callout,.dvq .tcard,.dvq .flash,.dvq .pop{display:none}}
+
+/* ---------- player card (locked 2026-10-08 · playground-card-A1) ---------- */
+.dvq .tc{position:relative;width:296px;height:432px;margin:0 auto;perspective:900px;cursor:pointer}
+.dvq .tc>.side{position:absolute;inset:0;backface-visibility:hidden;transition:transform .48s steps(6);border:4px solid #000;box-shadow:8px 8px 0 var(--shd)}
+.dvq .tc .front{background:var(--tc);padding:8px}
+.dvq .tc .back{transform:rotateY(180deg);background:#000;border-color:var(--tc);padding:16px;display:flex;flex-direction:column;gap:8px}
+.dvq .tc.flip .front{transform:rotateY(-180deg)} .dvq .tc.flip .back{transform:none}
+.dvq .foil{position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 0 40%,rgba(255,255,255,.35) 40% 46%,transparent 46% 52%,rgba(255,255,255,.2) 52% 55%,transparent 55%);background-size:300% 100%;animation:dvq-foil 2.4s steps(12) infinite;mix-blend-mode:screen}
+@keyframes dvq-foil{from{background-position:100% 0}to{background-position:-50% 0}}
+.dvq .tc .inner{position:relative;height:100%;border:4px solid #000;background:#000;display:flex;flex-direction:column}
+.dvq .tc .portrait{position:relative;flex:1;overflow:hidden;border-bottom:4px solid #000}
+.dvq .tc .portrait .spot{position:absolute;left:50%;top:0;width:220px;margin-left:-110px;height:100%;background:rgba(255,255,255,.12);clip-path:polygon(38% 0,62% 0,100% 100%,0 100%)}
+.dvq .tc .portrait .floor{position:absolute;left:0;right:0;bottom:0;height:56px}
+.dvq .tc .portrait canvas{position:absolute;left:50%;bottom:24px;transform:translateX(-50%)}
+.dvq .ovr{position:absolute;left:8px;top:8px;z-index:2;width:72px;padding:8px 0;background:#000;border:4px solid var(--w);text-align:center}
+.dvq .postag{position:absolute;right:8px;top:8px;z-index:2}
+.dvq .nameband{background:var(--w);color:#000;padding:8px 12px;display:flex;justify-content:space-between;align-items:center}
+.dvq .tierband{background:var(--tc);color:#000;padding:8px 12px;display:flex;justify-content:space-between;align-items:center}
+.dvq .flipcue{display:none}
+.dvq .meter{display:grid;grid-template-columns:repeat(9,1fr);gap:2px;height:16px}
+.dvq .meter i{background:var(--panel2);border:2px solid var(--lock)}
+.dvq .meter i.on{background:var(--c);border-color:var(--c)}
+.dvq .tc{height:440px}
+.dvq .tc .back{padding:0;gap:0}
+.dvq .bk-head{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--tc);color:#000}
+.dvq .bk-id{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:12px;border-bottom:4px solid var(--line)}
+.dvq .bk-id .mini{height:72px;display:grid;place-items:end center;background:var(--panel);border:4px solid var(--w);overflow:hidden}
+.dvq .bio{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;align-items:baseline}
+.dvq .bio b{font-size:14px;line-height:18px;font-weight:800}
+.dvq .bk-sec{padding:8px 12px;border-bottom:4px solid var(--line)}
+.dvq .bk-sec .p8.h{display:block;margin-bottom:6px}
+.dvq .mrow{display:grid;grid-template-columns:88px 1fr 24px;gap:8px;align-items:center;margin-top:6px}
+.dvq .career{display:grid;grid-template-columns:repeat(4,1fr);text-align:center}
+.dvq .career div+div{border-left:4px solid var(--line)}
+.dvq .career b{display:block;font-family:var(--px);font-size:16px;line-height:24px}
+.dvq .bk-foot{display:flex;justify-content:space-between;padding:6px 12px;margin-top:auto}
+
+/* ---------- 1008-5: the coach leads every screen ---------- */
+.dvq .lead{display:flex;align-items:flex-end;gap:8px;padding:8px 16px 0}
+.dvq .lead .bk{flex:none;align-self:flex-start}
+.dvq .lead .lc,.dvq .lead .lp{flex:none}
+.dvq .bub.ld{flex:1;margin:0 0 8px 8px;min-height:48px;padding:10px 12px}
+.dvq .stat{display:flex;align-items:center;gap:12px;height:32px;margin:4px 16px 8px;border-bottom:4px solid var(--line)}
+.dvq .stat .heat{flex:1}.dvq .stat .hc i{height:12px}
+.dvq .hero.sm{height:104px;margin-top:8px}
+.dvq .days.sm{margin-top:8px}.dvq .days.sm .dsq{height:44px}
+.dvq .drl.sm{min-height:40px}
+.dvq .pos4{display:flex;align-items:center;gap:8px;margin:6px 16px 0}
+.dvq .pos4 .p8{flex:1}
+.dvq .pos4 .chip{min-height:44px;padding:0 12px}
+
+/* ---------- 1008-1: the web page ---------- */
+.dvq .site{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 16px;background:#000;border-bottom:4px solid var(--line)}
+.dvq .site img{height:32px;width:auto;display:block}
+.dvq .legal{margin:8px 0 0;font:600 14px/20px var(--ui);color:var(--dim);text-align:center}
+/* a 3-step track (D33): the step the player is on is lit in the logo blue */
+.dvq .track3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 16px 0}
+.dvq .track3 div{min-height:72px;padding:8px;background:var(--panel2);border:4px solid var(--lock);color:var(--dim);text-align:center;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center}
+.dvq .track3 div.on{background:var(--blue);border-color:var(--w);color:#000}
+.dvq .snd{flex:none}
+/* A4 declares .note twice and the second wins, on the landing and the card back alike */
+.dvq .note{font-size:14px;line-height:20px;font-weight:600;text-align:center;margin:12px 0 0}
+.dvq .lockcard{align-items:center}
+.dvq .conf{margin:12px 16px 0;border-color:var(--g)}
+.dvq .conf p{margin:6px 0 0;font-size:15px;line-height:21px;font-weight:600}
+/* the card laid out flat and out of sight while cardImages() paints it (no flip, no animation) */
+.dvq .cardshot{position:fixed;left:-10000px;top:0;width:296px;pointer-events:none}
+.dvq .cardshot .tc>.side{transform:none;transition:none}
+.dvq .cardshot .foil{display:none}
+
+/* on a laptop the phone column sits centred on the dithered page */
+.dvq .col{position:absolute;top:0;bottom:0;left:50%;width:min(100%,480px);transform:translateX(-50%)}
+</style>
+</head><body style="margin:0">
+<div class="dvq dith"><div class="col"></div></div>
+<noscript><p style="position:fixed;inset:auto 0 0;z-index:1001;margin:0;padding:16px;background:#000;font:600 16px/24px system-ui,sans-serif;text-align:center"><a href="https://apps.apple.com/app/id6741947450" style="color:#39FF14">Get the DVLP app on the App Store</a></p></noscript>
+<script>
+(function(){
+const root=document.querySelector('.dvq');
+/* The one list of allowed quiz answers (training-plans I R6a). The build includes it in the quiz, the plan page and
+   apps-script/Code.gs, so browser and server check against the same values. A11: height in inches, age instead of grade. */
+var ANSWERS = {
+  PLAYERS: [8, 9, 10, 11, 12, 13],
+  OLD_PLAYERS: [1, 1, 2, 2, 4, 4, 5, 5], /* old 0–7 are still stored, so each draws its nearest cast member (research/1014-2) */
+  GOALS: ['Make the team', 'Earn more minutes', 'Play in college', 'Go pro'],
+  /* every inch from 4'0" to 7'2"; the ends stand for shorter and taller (quiz-landing §15.7) */
+  HEIGHTS: Array.from({ length: 39 }, (_, i) => 48 + i),
+  /* 8 stands for 8 or younger, 18 for 18 or older (§15.8) */
+  AGES: Array.from({ length: 11 }, (_, i) => 8 + i),
+  GENDERS: ['Female', 'Male', 'Skip'],
+  POSITIONS: ['Guard', 'Wing', 'Big'],
+  /* the 20-question quiz (quiz2 rows, app-onboarding R18): its four positions and the Q1–Q20 answer columns */
+  QUIZ_POSITIONS: ['PG', 'WING', 'FWD', 'C'],
+  Q_KEYS: Array.from({ length: 20 }, (_, i) => 'Q' + (i + 1)),
+  WORK_HARD: ['all', 'sometimes', 'notyet'],
+  EMAIL_FOR: ['player', 'parent'],
+  ID_RE: /^[0-9A-HJKMNP-TV-Z]{16}$/,
+  NAME_MAX: 12
+};
+function castOf(v) {
+  var n = (typeof v === 'number' || typeof v === 'string') && v !== '' ? Number(v) : NaN, i = ANSWERS.PLAYERS.indexOf(n);
+  if (i >= 0) return i;
+  return Math.floor(n) === n && n >= 0 && n < ANSWERS.OLD_PLAYERS.length ? ANSWERS.OLD_PLAYERS[n] : null;
+}
+function heightLabel(n) { return Math.floor(n / 12) + "'" + (n % 12) + '"' + (n === 48 ? ' or under' : n === 86 ? ' or taller' : ''); }
+function ageLabel(n) { return n === 8 ? '8 or younger' : n === 18 ? '18 or older' : String(n); }
+
+/* ===== the shootout (A6, 30 s): the game's constants, the initials block list and the score caps, one copy for the game
+   and apps-script/Code.gs (1010-10). The caps assume the 520 ms lock counts game time, the same clock as the 30 s. */
+var SHOOT = {
+  GAME_SEC: 30,
+  RUSH_SEC: 10,
+  SPOTS: [{ x: 9, y: 64, v: 3, n: 'CORNER' }, { x: 33, y: 40, v: 2, n: 'ELBOW' }, { x: 50, y: 4, v: 3, n: 'TOP' }, { x: 67, y: 40, v: 2, n: 'ELBOW' }, { x: 91, y: 64, v: 3, n: 'CORNER' }],
+  /* the green zone's half-width per spot value; a swish is the middle 30% of it */
+  ZONE: { 3: 0.085, 2: 0.12 },
+  SWISH: 1,
+  LOCK_MS: 520,
+  SPEED_START: 1.05,
+  SPEED_STEP: 0.07,
+  /* meter widths per second */
+  SPEED_MAX: 2.3,
+  /* the 5th make in a row turns ON FIRE on; it doubles from the 6th */
+  FIRE_AT: 5,
+  INITIALS_RE: /^[A-Z]{3}$/,
+  /* A6's 14, then more: spellings, slurs, sexual words, self-harm (KYS, KMS) */
+  BLOCK: ['ASS', 'FUK', 'FUC', 'SEX', 'KKK', 'NIG', 'FAG', 'DIK', 'CUM', 'TIT', 'WTF', 'GAY', 'JEW', 'NAZ',
+    'FUQ', 'FCK', 'FKU', 'FUX', 'FKN', 'NGR', 'NGA', 'FGT', 'FAP', 'DIC', 'DIX', 'DCK', 'CNT', 'KNT', 'CUN', 'KUM', 'JIZ', 'JZZ',
+    'TWT', 'SLT', 'WHR', 'HOE', 'BCH', 'SHT', 'PIS', 'PSS', 'AZZ', 'ARS', 'VAG', 'PNS', 'COK', 'COC', 'KOK', 'SUK', 'XXX',
+    'RPE', 'KYS', 'KMS', 'NZI', 'HTL', 'SPK', 'WOP', 'GOK', 'CHK']
+};
+/* Shots: the first tap shoots at 0 s, then one every LOCK_MS (a miss can go the moment the lock ends) while the clock is
+   under 30 s: floor((30000 - 1) / 520) + 1 = 58. */
+SHOOT.MAX_SHOTS = Math.floor((SHOOT.GAME_SEC * 1000 - 1) / SHOOT.LOCK_MS) + 1;
+/* Makes: after the lock the needle restarts at an edge and must reach the wider (2-point) zone at the fastest sweep:
+   floor((0.5 - 0.12) / 2.3 s) = 165 ms, so a make takes ≥ 520 + 165 = 685 ms. In 30 s: floor(29999 / 685) + 1 = 44;
+   in MONEYBALL's last 10 s (both ends counted): floor(10000 / 685) + 1 = 15. */
+SHOOT.MAKE_MS = SHOOT.LOCK_MS + Math.floor((0.5 - SHOOT.ZONE[2]) / SHOOT.SPEED_MAX * 1000);
+SHOOT.MAX_MAKES = Math.floor((SHOOT.GAME_SEC * 1000 - 1) / SHOOT.MAKE_MS) + 1;
+SHOOT.RUSH_MAKES = Math.floor(SHOOT.RUSH_SEC * 1000 / SHOOT.MAKE_MS) + 1;
+/* Points: a make is at most 3 + swish 1 = 4, times ON FIRE ×2 (makes 6+ of one streak: made − 5) times MONEYBALL ×2
+   (≤ RUSH_MAKES, best on the fire makes). 44 makes: 4 × (5 + 2·39 + 2·15) = 452. */
+function shootMaxScore(made) {
+  var fire = Math.max(made - SHOOT.FIRE_AT, 0), plain = made - fire, rush = Math.min(made, SHOOT.RUSH_MAKES);
+  var rushFire = Math.min(rush, fire), rushPlain = Math.min(rush - rushFire, plain);
+  return (3 + SHOOT.SWISH) * (plain + 2 * fire + 2 * rushFire + rushPlain);
+}
+/* Arcade UI pieces shared by the quiz, the plan page and go.dvlp.app/open: text, sound, the coach row and the loading cells.
+   They read the page's S (fx for sound, bs for progress). */
+const RM=()=>matchMedia('(prefers-reduced-motion:reduce)').matches;
+function esc(t){return String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+/* ===== sound (prototype's square-wave tones); silent unless S.fx ===== */
+let AC=null;
+function tone(f,d,t0,vol){if(!S.fx)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f;const t=AC.currentTime+t0;g.gain.setValueAtTime(vol||.05,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02);}catch(e){}}
+function typeEl(el){const t=el.dataset.type||'';if(RM()){el.textContent=t;return;}let i=0;el.textContent='';clearInterval(el._iv);el._iv=setInterval(()=>{if(!el.isConnected){clearInterval(el._iv);return;}i++;el.textContent=t.slice(0,i);if(i%3===0)tone(420+(i%5)*40,.015,0,.01);if(i>=t.length)clearInterval(el._iv);},22);} // golden-rule-ignore: the coach's typewriter text is the feature
+const IC_BACK='<svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path d="M5 0h1v1H5v1H4v1H3v2h1v1h1v1h1v1H5V7H4V6H3V5H2V3h1V2h1V1h1z" fill="#fff"/></svg>';
+const back=`<button class="bk" data-a="back" aria-label="Back">${IC_BACK}</button>`;
+/* ===== the coach leads every screen ===== */
+function lead(text,o){o=o||{};return `<div class="lead">${o.back===false?'':back}<span class="lc">${coach({sc:3})}</span><div class="bub ld" ${o.id?`id="dvq-${o.id}"`:''} data-type="${text}"></div>${o.player?`<span id="dvq-me" class="lp">${spr({sc:3,look:look(),anim:o.re?'cel':'idle'})}</span>`:''}</div>`;}
+function scanCells(c){return `<div class="hc" style="width:100%;display:flex;gap:4px" aria-label="Progress">${[0,1,2].map(i=>`<i style="flex:1;height:16px;border:4px solid var(--line);background:${i<=S.bs?c:'var(--panel2)'}"></i>`).join('')}</div>`;}
+function cardPack(lines){return `<div class="pc"><div class="back"><div class="scan"></div><div class="panel" style="text-align:center;box-shadow:none"><div class="p16 px">DVLP</div><div class="p8 gold" style="margin-top:8px">${lines[Math.min(S.bs,2)]}</div></div></div></div>`;}
+/* Sprites and the locked player card, shared by the quiz and the plan page (training-plans I R3).
+   Card functions draw the player p: {v, name, lv, tier, arch, pos, h, age, goal, xp, cflip}. spr() defaults to the page's S. */
+/* ===== sprite renderer from prototype-v1; it draws one of the cast of six (skin-tones spec §1–2): hair style, skin, hair colour ===== */
+let frame=0;
+const SKIN=[{a:'light skin tone',c:'#F2C49E'},{a:'medium skin tone',c:'#B87548'},{a:'dark skin tone',c:'#6E4226'}];
+const CAST=[{st:0,sk:0,hr:'#6B4226',g:'Boy'},{st:1,sk:1,hr:'#000000',g:'Boy'},{st:2,sk:2,hr:'#000000',g:'Boy'},{st:7,sk:0,hr:'#C8902E',g:'Girl'},{st:5,sk:1,hr:'#3b2414',g:'Girl'},{st:6,sk:2,hr:'#000000',g:'Girl'}];
+const charOf=v=>{const c=CAST[castOf(v)]||CAST[1];return {st:c.st,sk:SKIN[c.sk].c,hr:c.hr};};
+const castLabel=i=>`${CAST[i].g}, ${SKIN[CAST[i].sk].a}`;
+const LOOKS=[{n:'Rookie',t:'#FFFFFF',s:'#A1A1A6',sh:'#FFFFFF',b:'#FFFFFF'},{n:'Starter',t:'#FFFFFF',s:'#2B2B30',sh:'#FFFFFF',b:'#FFFFFF'},{n:'Standout',t:'#39FF14',s:'#26262B',sh:'#39FF14',b:'#39FF14'},{n:'Pro',t:'#4DA2F4',s:'#0A0A0F',sh:'#FFFFFF',b:'#4DA2F4'}];
+function drawSpr(cv){
+  if(cv.dataset.coach){drawCoach(cv);return;}
+  const o=cv.dataset,s=+o.sc,f=frame%2,cel=o.anim==='cel',L={...LOOKS[+o.look]},ch=charOf(o.v),sk=ch.sk,hr=ch.hr,OL='#26262B',A=o.arch;
+  cv.width=18*s;cv.height=26*s;const c=cv.getContext('2d');
+  const dy=cel?(f?-2:0):0,bob=!cel&&f?1:0;
+  const sh=[];
+  const hv=ch.st;
+  const fem=hv>=4;if(fem)L.t='#C93A7A';
+  if(!fem)sh.push([hv===2?4:5,hv===1?0:hv===2?0:1,hv===2?8:6,hv===3?1:hv===1?3:hv===2?3:2,hr,1]);
+  else{const b=hv-4;
+    if(b===0)sh.push([11,2,2,2,hr,1],[12,4,2,5,hr,1],[11,3,1,1,'#4DA2F4',1]);
+    if(b===1)sh.push([7,-1,3,2,hr,1],[8,0,1,1,'#39FF14',1]);
+    if(b===2)sh.push([4,3,1,8,hr,1],[11,3,1,8,hr,1],[4,10,1,1,'#4DA2F4',1],[11,10,1,1,'#4DA2F4',1]);
+    if(b===3)sh.push([4,2,8,9,hr,1]);
+    sh.push([5,1,6,2,hr,1]);}
+  sh.push([5,3,6,5,sk,1],[6,5,1,1,OL,1],[9,5,1,1,OL,1]);
+  if(fem){sh.push([5,3,6,1,hr,1],[5,3,1,2,hr,1],[10,3,1,2,hr,1]);}
+  if(+o.look>=1)sh.push([5,3,6,1,L.b,1]);
+  /* the jersey is grey for every look, so the coach in blue reads as a different person (design.md 2026-10-15); looks differ by trim, shorts and headband */
+  sh.push([4,8,8,7,'#8E8E93',1],[4,8,8,1,L.t,1],[7,10,2,3,L.t,1]);
+  let la=[2,9,2,5],ra=[12,9,2,5],ball=[11,12];
+  if(A==='Sharpshooter'){ra=[11,6,2,5];ball=[11,3];}
+  else if(A==='Playmaker'){ra=[12,11,2,4];ball=[12,16];}
+  else if(A==='Slasher'){ball=[2,12];}
+  else if(A==='Lockdown'){la=[0,9,3,2];ra=[13,9,3,2];ball=null;}
+  else{ball=[11,13];}
+  if(cel){la=[2,3,2,6];ra=[12,3,2,6];ball=[7,-1];}
+  sh.push([...la,sk,1],[...ra,sk,1],[5,15,6,4,L.s,1]);
+  sh.push([5,19,2,3,sk,0],[9,19,2,3,sk,0],[4,22,3,2,L.sh,0],[9,22,3,2,L.sh,0]);
+  if(ball)sh.push([ball[0],ball[1],3,3,'#FF7A45',1]);
+  const draw=(pass)=>sh.forEach(r=>{const y=r[1]+(r[5]?(cel?dy:bob):(cel?dy:0))+2,x=r[0]+1;
+    if(pass===0){c.fillStyle=OL;c.fillRect((x-1)*s,(y-1)*s,(r[2]+2)*s,(r[3]+2)*s);}else{c.fillStyle=r[4];c.fillRect(x*s,y*s,r[2]*s,r[3]*s);}});
+  draw(0);draw(1);
+}
+function drawCoach(cv){
+  const o=cv.dataset,s=+o.sc,f=frame%2,cel=o.anim==='cel',OL='#26262B',K='#7A4528';
+  cv.width=18*s;cv.height=26*s;const c=cv.getContext('2d');
+  const dy=cel?(f?-2:0):0,bob=!cel&&f?1:0,sh=[];
+  sh.push([5,4,6,4,K,1],[6,5,1,1,OL,1],[9,5,1,1,OL,1],[6,7,4,1,'#2B1810',1]);
+  sh.push([5,0,6,1,'#0A0A0F',1],[4,1,8,3,'#0A0A0F',1],[6,3,4,1,'#26262B',1]);
+  /* DVLP-blue jersey with one white 3x3 arrow, the brand mark (design.md 2026-10-15). The lanyard and whistle went: next to the arrow they merged into one white band */
+  sh.push([4,8,8,7,'#00A6FE',1],[4,8,8,1,'#0082C8',1],[6,10,3,1,'#FFFFFF',1],[8,11,1,2,'#FFFFFF',1],[7,11,1,1,'#FFFFFF',1],[6,12,1,1,'#FFFFFF',1]);
+  let la=[2,9,2,5],ra=[12,9,2,5];if(cel){la=[2,3,2,6];ra=[12,3,2,6];}
+  sh.push([...la,K,1],[...ra,K,1]);
+  sh.push([-1,cel?0:12,3,5,'#FFFFFF',1],[0,cel?1:13,1,3,'#A1A1A6',1]);
+  sh.push([4,15,8,4,'#3B3B44',1],[4,15,1,4,'#FFFFFF',1],[11,15,1,4,'#FFFFFF',1]);
+  sh.push([5,19,2,3,K,0],[9,19,2,3,K,0],[5,21,2,1,'#FFFFFF',0],[9,21,2,1,'#FFFFFF',0],[4,22,3,2,'#FFFFFF',0],[9,22,3,2,'#FFFFFF',0]);
+  const draw=(pass)=>sh.forEach(r=>{const y=r[1]+(r[5]?(cel?dy:bob):(cel?dy:0))+2,x=r[0]+1;
+    if(pass===0){c.fillStyle=OL;c.fillRect((x-1)*s,(y-1)*s,(r[2]+2)*s,(r[3]+2)*s);}else{c.fillStyle=r[4];c.fillRect(x*s,y*s,r[2]*s,r[3]*s);}});
+  draw(0);draw(1);
+}
+
+function spr(a={}){return `<canvas class="spr" data-v="${a.v??S.v}" data-look="${a.look??0}" data-arch="${a.arch??S.arch}" data-anim="${a.anim||'idle'}" data-sc="${a.sc||6}" data-pw="0"></canvas>`;}
+function coach(a={}){return `<canvas class="spr" data-coach="1" data-anim="${a.anim||'idle'}" data-sc="${a.sc||4}" aria-hidden="true"></canvas>`;}
+function drawAll(){root.querySelectorAll('canvas.spr').forEach(drawSpr);}
+if(!matchMedia('(prefers-reduced-motion:reduce)').matches)setInterval(()=>{frame++;drawAll();},500); // golden-rule-ignore: the sprites' two-frame idle animation is the feature
+
+/* display rows for the four skills: key, card label, colour variable */
+const SKILL_ROWS=[['BH','HANDLES','--bh'],['FW','FOOTWORK','--fw'],['FN','FINISHING','--fn'],['SH','SHOOTING','--sh']];
+/* ===== player card (locked 2026-10-08, playground-card-A1): the front is who you are, the back is a collector back.
+   The back is fixed-order and fixed-size so two cards can later be compared stat for stat. ===== */
+/* tier 2 keeps STANDOUT's green and takes the name PRO (design R7) */
+const CARD_TC=['#A1A1A6','#4DA2F4','#39FF14'];
+function cardMeter(p,k,c){return `<div class="meter" style="--c:${c}">${Array.from({length:9},(_,i)=>`<i class="${i<(p.lv[k]||1)*3?'on':''}"></i>`).join('')}</div>`;}
+function cardFront(p){const {o}=ratingsOf(p.lv),t=p.tier;return `<div class="side front"><div class="inner"><div class="portrait dith"><div class="spot"></div><div class="floor"></div>${spr({v:p.v,arch:p.arch,sc:8,look:Math.min(2,t)})}
+  <div class="ovr"><div class="p24 px">${o}</div><div class="p8 dim">RESULTS</div></div><span class="tag postag" style="background:${CARD_TC[t]}">${(p.pos||'PLAYER').toUpperCase()}</span></div>
+ <div class="nameband"><span class="p16 px">${esc((p.name||'PLAYER').toUpperCase())}</span><span class="p8">#001</span></div>
+ <div class="tierband"><span class="p8">${p.arch.toUpperCase()}</span><span class="p8">★ ${TIER_NAMES[t]}</span></div></div><div class="foil"></div></div>`;}
+function cardBack(p){const {r,o}=ratingsOf(p.lv),t=p.tier,R=Object.values(r);return `<div class="side back">
+ <div class="bk-head"><span class="p8">#001 · ${esc((p.name||'PLAYER').toUpperCase())}</span><span class="p8">★ ${TIER_NAMES[t]}</span></div>
+ <div class="bk-id"><div class="mini">${spr({v:p.v,arch:p.arch,sc:2,look:Math.min(2,t)})}</div><div class="bio"><span class="p8 dim">HT</span><b>${p.h!=null?heightLabel(ANSWERS.HEIGHTS[p.h]):'—'}</b><span class="p8 dim">AGE</span><b>${p.age!=null?ageLabel(ANSWERS.AGES[p.age]):'—'}</b><span class="p8 dim">POS</span><b>${p.pos||'—'}</b><span class="p8 dim">GOAL</span><b>${p.goal!=null?ANSWERS.GOALS[p.goal]:'—'}</b></div></div>
+ <div class="bk-sec"><span class="p8 h" style="color:${CARD_TC[t]}">RATINGS · RESULTS ${o}</span>${SKILL_ROWS.map(([k,n,c],i)=>`<div class="mrow"><span class="p8" style="color:var(${c})">${n}</span>${cardMeter(p,k,`var(${c})`)}<span class="p8">${R[i]}</span></div>`).join('')}</div>
+ <div class="bk-sec career">${[['DAYS',0],['DRILLS',0],['STREAK',0],['XP',p.xp]].map(([l,v])=>`<div><b>${v}</b><span class="p8 dim">${l}</span></div>`).join('')}</div>
+ <div class="bk-sec" style="border-bottom:0"><span class="p8 h dim">COACH'S NOTE</span><p class="note" style="text-align:left;margin:0">${noteLine(p.lv)}</p></div>
+ <div class="bk-foot p8 dim"><span>DVLP</span><span>${p.arch.toUpperCase()}</span></div></div>`;}
+function tradingCard(p){return `<div class="tc ${p.cflip?'flip':''}" style="--tc:${CARD_TC[p.tier]}" data-a="cflip" role="button" tabindex="0" aria-label="Your player card. Tap to flip.">${cardFront(p)}${cardBack(p)}</div><div class="p8 dim flipcue">${p.cflip?'TAP TO FLIP BACK':'TAP THE CARD TO FLIP IT'}</div>`;}
+
+/* ===== the card as two PNGs for the plan email (quiz-landing §15.6) =====
+   The same card markup is laid out off-screen, flat (no flip), and painted onto a canvas from its own boxes at 2×, so the
+   image is a second rendering of the one card. SVG foreignObject was rejected: Safari taints the canvas, so no toDataURL. */
+function cardImages(p, host) {
+  const fonts = ['8px "Press Start 2P"', '16px "Press Start 2P"', '24px "Press Start 2P"', '600 14px Inter', '700 14px Inter', '800 14px Inter'];
+  return Promise.all(fonts.map(f => document.fonts.load(f))).then(() => {
+    const box = document.createElement('div');
+    box.className = 'cardshot';
+    box.innerHTML = `<div class="tc" style="--tc:${CARD_TC[p.tier]}">${cardFront(p)}</div><div class="tc" style="--tc:${CARD_TC[p.tier]}">${cardBack(p)}</div>`;
+    host.appendChild(box);
+    box.querySelectorAll('canvas.spr').forEach(drawSpr);
+    const [front, back] = box.querySelectorAll('.side');
+    const shot = side => pngUrl(paintSide(side, 2)).then(u => u.length <= CARD_IMAGE_MAX ? u : pngUrl(paintSide(side, 1)));
+    return Promise.all([shot(front), shot(back)]).then(([f, b]) => ({ front: f, back: b })).finally(() => box.remove());
+  });
+}
+/* Code.gs keeps each image in a Sheet cell until it is sent, and a cell holds 50,000 characters */
+const CARD_IMAGE_MAX = 49000;
+function paintSide(side, k) {
+  const r = side.getBoundingClientRect(), cv = document.createElement('canvas');
+  const shadow = parseFloat((getComputedStyle(side).boxShadow.match(/(-?[\d.]+)px\s+-?[\d.]+px/) || [0, 0])[1]);
+  cv.width = (r.width + shadow) * k; cv.height = (r.height + shadow) * k;
+  const c = cv.getContext('2d');
+  c.imageSmoothingEnabled = false;
+  // opaque black under the card, as the email block it sits on: no alpha channel to encode
+  c.fillStyle = '#000'; c.fillRect(0, 0, cv.width, cv.height);
+  c.scale(k, k); c.translate(-r.left, -r.top);
+  paintBox(c, side);
+  return cv;
+}
+/* A small PNG encoder: the canvas's own toDataURL writes 32-bit RGBA with light compression, about four times the size.
+   A palette PNG when the card has 256 colours or fewer, else RGB with a per-row filter; deflate is the browser's own. */
+function pngUrl(cv) {
+  if (typeof CompressionStream === 'undefined') return Promise.resolve(cv.toDataURL('image/png'));
+  const w = cv.width, h = cv.height, px = cv.getContext('2d').getImageData(0, 0, w, h).data, pal = new Map();
+  for (let i = 0; i < px.length && pal.size <= 256; i += 4) { const v = px[i] << 16 | px[i + 1] << 8 | px[i + 2]; if (!pal.has(v)) pal.set(v, pal.size); }
+  const indexed = pal.size <= 256, bpp = indexed ? 1 : 3, raw = new Uint8Array(h * (w * bpp + 1));
+  for (let y = 0, o = 0; y < h; y++) {
+    const row = new Uint8Array(w * bpp);
+    for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (indexed) row[x] = pal.get(px[i] << 16 | px[i + 1] << 8 | px[i + 2]); else row.set([px[i], px[i + 1], px[i + 2]], x * 3); }
+    const prev = y ? raw.subarray(o - w * bpp, o) : new Uint8Array(w * bpp);
+    const sub = row.map((v, x) => v - (x >= bpp ? row[x - bpp] : 0)), up = row.map((v, x) => v - prev[x]);
+    const cost = a => a.reduce((s, v) => s + (v < 128 ? v : 256 - v), 0);
+    const [f, data] = indexed ? [0, row] : [[0, row], [1, sub], [2, up]].reduce((a, b) => cost(b[1]) < cost(a[1]) ? b : a);
+    raw[o++] = f; raw.set(data, o); o += data.length;
+  }
+  const chunks = [chunk('IHDR', [...u32(w), ...u32(h), 8, indexed ? 3 : 2, 0, 0, 0])];
+  if (indexed) chunks.push(chunk('PLTE', [...pal.keys()].flatMap(v => [v >> 16 & 255, v >> 8 & 255, v & 255])));
+  return new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer().then(z => {
+    const bytes = [137, 80, 78, 71, 13, 10, 26, 10, ...chunks.flat(), ...chunk('IDAT', new Uint8Array(z)), ...chunk('IEND', [])];
+    let bin = ''; for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.slice(i, i + 8192));
+    return 'data:image/png;base64,' + btoa(bin);
+  });
+}
+function u32(n) { return [n >>> 24 & 255, n >>> 16 & 255, n >>> 8 & 255, n & 255]; }
+function chunk(type, data) {
+  const body = [...type].map(ch => ch.charCodeAt(0)).concat(Array.from(data));
+  let c = -1;
+  for (const b of body) { c ^= b; for (let k = 0; k < 8; k++) c = c >>> 1 ^ (0xEDB88320 & -(c & 1)); }
+  return [...u32(data.length), ...body, ...u32((c ^ -1) >>> 0)];
+}
+/* one element: its shadow, background (colour, the dither pattern, a clip-path polygon), borders, then its children */
+function paintBox(c, el) {
+  const cs = getComputedStyle(el);
+  if (cs.display === 'none' || cs.visibility === 'hidden') return;
+  const r = el.getBoundingClientRect(), bw = s => parseFloat(cs['border' + s + 'Width']) || 0;
+  const sh = cs.boxShadow.match(/(rgba?\([^)]*\))\s+(-?[\d.]+)px\s+(-?[\d.]+)px/);
+  if (sh) { c.fillStyle = sh[1]; c.fillRect(r.left + +sh[2], r.top + +sh[3], r.width, r.height); }
+  c.save();
+  const poly = cs.clipPath.match(/^polygon\((.*)\)$/);
+  if (poly) {
+    c.beginPath();
+    poly[1].split(',').forEach((pt, i) => { const [x, y] = pt.trim().split(/\s+/).map((v, j) => v.endsWith('%') ? parseFloat(v) / 100 * (j ? r.height : r.width) : parseFloat(v)); c[i ? 'lineTo' : 'moveTo'](r.left + x, r.top + y); });
+    c.closePath(); c.clip();
+  }
+  if (!/rgba\(\d+, \d+, \d+, 0\)|transparent/.test(cs.backgroundColor)) { c.fillStyle = cs.backgroundColor; c.fillRect(r.left, r.top, r.width, r.height); }
+  const dither = cs.backgroundImage.match(/^conic-gradient\((rgba?\([^)]*\))/);
+  if (dither) {
+    const n = parseFloat(cs.backgroundSize) || 4, tile = document.createElement('canvas'), tc = tile.getContext('2d');
+    tile.width = tile.height = n; tc.fillStyle = dither[1]; tc.fillRect(n / 2, 0, n / 2, n / 2); tc.fillRect(0, n / 2, n / 2, n / 2);
+    const x0 = r.left + bw('Left'), y0 = r.top + bw('Top');
+    c.translate(x0, y0); c.fillStyle = c.createPattern(tile, 'repeat'); c.fillRect(0, 0, r.width - bw('Left') - bw('Right'), r.height - bw('Top') - bw('Bottom'));
+  }
+  c.restore();
+  [['Top', 0, 0, r.width, bw('Top')], ['Bottom', 0, r.height - bw('Bottom'), r.width, bw('Bottom')], ['Left', 0, 0, bw('Left'), r.height], ['Right', r.width - bw('Right'), 0, bw('Right'), r.height]]
+    .forEach(([s, x, y, w, h]) => { if (w > 0 && h > 0 && cs['border' + s + 'Style'] !== 'none') { c.fillStyle = cs['border' + s + 'Color']; c.fillRect(r.left + x, r.top + y, w, h); } });
+  const clip = cs.overflow === 'hidden';
+  if (clip) { c.save(); c.beginPath(); c.rect(r.left + bw('Left'), r.top + bw('Top'), r.width - bw('Left') - bw('Right'), r.height - bw('Top') - bw('Bottom')); c.clip(); }
+  el.childNodes.forEach(n => {
+    if (n.nodeType === 3) paintText(c, n, cs);
+    else if (n.nodeType === 1 && n.tagName === 'CANVAS') { const q = n.getBoundingClientRect(); c.drawImage(n, q.left, q.top, q.width, q.height); }
+    else if (n.nodeType === 1) paintBox(c, n);
+  });
+  if (clip) c.restore();
+}
+/* every character at its own laid-out position, so wrapping, spacing and text-transform match the card exactly */
+function paintText(c, node, cs) {
+  c.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  c.fillStyle = cs.color; c.textBaseline = 'alphabetic';
+  const ascent = c.measureText('M').fontBoundingBoxAscent, up = cs.textTransform === 'uppercase', range = document.createRange();
+  for (let i = 0; i < node.data.length; i++) {
+    const ch = node.data[i];
+    if (/\s/.test(ch)) continue;
+    range.setStart(node, i); range.setEnd(node, i + 1);
+    const q = range.getClientRects()[0];
+    if (q && q.width) c.fillText(up ? ch.toUpperCase() : ch, q.left, q.top + ascent);
+  }
+}
+const S={fx:false};
+const APP_STORE='https://apps.apple.com/app/id6741947450';
+/* only the plan email links here with an id, and its address is on the list, so the id alone says "on the list" (D34a) */
+const id=new URLSearchParams(location.search).get('id'), known=!!id&&ANSWERS.ID_RE.test(id);
+const android=/Android/i.test(navigator.userAgent);
+const step=(n,label,on)=>`<div class="${on?'on':''}"><span class="p16 px">${n}</span><span class="p8">${label}</span></div>`;
+const actionHtml=()=>android
+  ?`<div class="p16 px" style="text-align:center;color:var(--y)">ANDROID COMING SOON</div><p class="legal">${known?"You're on the list. We'll email you the day it's out.":'Android is coming soon.'}</p><div style="height:12px"></div><a class="abtn go" href="https://dvlp.app/plan${known?'?p='+id:''}">SEE MY PLAN</a>`
+  :`<a class="abtn go" href="${APP_STORE}">DOWNLOAD APP</a><p class="legal">FREE ON IPHONE</p>`;
+root.querySelector('.col').innerHTML=`<div class="scr dith"><header class="site"><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAkACQAAD/4QECRXhpZgAATU0AKgAAAAgABwEOAAIAAAALAAAAYgESAAMAAAABAAEAAAEaAAUAAAABAAAAbgEbAAUAAAABAAAAdgEoAAMAAAABAAIAAAEyAAIAAAAUAAAAfodpAAQAAAABAAAAkgAAAABTY3JlZW5zaG90AAAAAACQAAAAAQAAAJAAAAABMjAyNjoxMDowNiAxMzo1NjowMwAABZADAAIAAAAUAAAA1JKGAAcAAAASAAAA6KABAAMAAAAB//8AAKACAAQAAAABAAABfaADAAQAAAABAAAAtAAAAAAyMDI2OjEwOjA2IDEzOjU2OjAzAEFTQ0lJAAAAU2NyZWVuc2hvdP/tAG5QaG90b3Nob3AgMy4wADhCSU0EBAAAAAAANhwBWgADGyVHHAIAAAIAAhwCeAAKU2NyZWVuc2hvdBwCPAAGMTM1NjAzHAI3AAgyMDI2MTAwNjhCSU0EJQAAAAAAEB8X2CkhK4mGHclyb29hzsL/4gIoSUNDX1BST0ZJTEUAAQEAAAIYYXBwbAQAAABtbnRyUkdCIFhZWiAH5gABAAEAAAAAAABhY3NwQVBQTAAAAABBUFBMAAAAAAAAAAAAAAAAAAAAAAAA9tYAAQAAAADTLWFwcGwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApkZXNjAAAA/AAAADBjcHJ0AAABLAAAAFB3dHB0AAABfAAAABRyWFlaAAABkAAAABRnWFlaAAABpAAAABRiWFlaAAABuAAAABRyVFJDAAABzAAAACBjaGFkAAAB7AAAACxiVFJDAAABzAAAACBnVFJDAAABzAAAACBtbHVjAAAAAAAAAAEAAAAMZW5VUwAAABQAAAAcAEQAaQBzAHAAbABhAHkAIABQADNtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADQAAAAcAEMAbwBwAHkAcgBpAGcAaAB0ACAAQQBwAHAAbABlACAASQBuAGMALgAsACAAMgAwADIAMlhZWiAAAAAAAAD21QABAAAAANMsWFlaIAAAAAAAAIPfAAA9v////7tYWVogAAAAAAAASr8AALE3AAAKuVhZWiAAAAAAAAAoOAAAEQsAAMi5cGFyYQAAAAAAAwAAAAJmZgAA8qcAAA1ZAAAT0AAACltzZjMyAAAAAAABDEIAAAXe///zJgAAB5MAAP2Q///7ov///aMAAAPcAADAbv/AABEIALQBfQMBIgACEQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xAC1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6ery8/T19vf4+fr/2wBDAAICAgICAgMCAgMFAwMDBQYFBQUFBggGBgYGBggKCAgICAgICgoKCgoKCgoMDAwMDAwODg4ODg8PDw8PDw8PDw//2wBDAQIDAwQEBAcEBAcQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/3QAEABj/2gAMAwEAAhEDEQA/AP5/6KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA/9D+f+iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/R/n/ooooAKKKKACv068BfsUfDfxV4G8O+KL7WtWiudY020vJUjeAIr3EKyMFz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4k+PNF8ManP4jurhLbUb+G2maFrW2VZAkjAlSysAemQa/ncooA/tl/4bM/ZO/wCiv+Ff/Bva/wDxyj/hsz9k7/or/hX/AMG9r/8AHK/iaooA/tl/4bM/ZO/6K/4V/wDBva//AByvyg/4K4fHj4LfFb4K+DtF+GnjnRvFN/aeIVuJoNNvobqSOH7JOm9ljZiF3MBk8ZIr+fmigD9o/wDgj98YPhV8JtW+J83xP8XaX4WTUoNJW1Op3cVqJzE1zvEfmsu7buXOOmRX7hf8Nmfsnf8ARX/Cv/g3tf8A45X8TVFAH79/8Fcvjr8F/iv8IfBWk/DPxvo/im9stdaeaHTb6G6kji+yyrvZY2YhdxAye5r8BKKKACiiigAooooAKKKKACiiigD/1/5/6KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA/9D+f+iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/R/n/ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD/0v5/6KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA/9k=" alt="DVLP"></header>
+  ${lead(android?'Android is coming soon. Your plan is ready on the web.':'Get the app, then tap OPEN IN THE APP in your email again.',{back:false})}
+  <div class="track3">${step(1,'GET THE APP',!android)}${step(2,'TAP THE EMAIL LINK',false)}${step(3,'GAME LOADED',false)}</div>
+  <div style="position:relative;height:152px;margin-top:16px"><div class="floor" style="position:absolute;left:0;right:0;bottom:0;height:48px"></div><span style="position:absolute;left:50%;bottom:20px;transform:translateX(-50%)">${coach({sc:4})}</span></div>
+  <div class="pad" style="margin-top:16px">${actionHtml()}</div></div>`;
+drawAll();root.querySelectorAll('[data-type]').forEach(typeEl);
+})();
+</script>
+</body></html>
